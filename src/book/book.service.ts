@@ -1,32 +1,43 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
-
-export interface Book {
-    id: number;
-    title: string;
-    author: string;
-    genre: string;
-}
+import { Book } from './entity/book.entity';
+import { Like, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { BookDetail } from './entity/book-detail.entity';
 
 @Injectable()
 export class BookService {
-    private books: Book[] = [
-        { id: 1, title: 'Book 1', author: 'Author 1', genre: 'Genre 1' },
-        { id: 2, title: 'Book 2', author: 'Author 2', genre: 'Genre 2' },
-        { id: 3, title: 'Book 3', author: 'Author 3', genre: 'Genre 3' },
-    ];
+    private books: Book[] = [];
+    constructor(
+        @InjectRepository(Book)
+        private readonly bookRepository: Repository<Book>,
+        @InjectRepository(BookDetail)
+        private readonly bookDetailRepository: Repository<BookDetail>,
+    ) {}
 
-    getManyBooks(title?: string) {
+    async getManyBooks(title?: string) {
+        // 나중에 title 필터 기능 추가하기
         if (!title) {
-            return this.books;
+            return [
+                await this.bookRepository.find(),
+                await this.bookRepository.count(),
+            ];
         }
 
-        return this.books.filter((b) => b.title.startsWith(title));
+        return this.bookRepository.findAndCount({
+            where: {
+                title: Like(`%${title}%`),
+            },
+        });
     }
 
-    getBookById(id: number) {
-        const book = this.books.find((b) => b.id === +id);
+    async getBookById(id: number) {
+        const book = await this.bookRepository.findOne({
+            where: { id },
+            relations: ['detail'],
+        });
+
         if (!book) {
             // 404 에러
             throw new NotFoundException('존재하지 않는 ID의 책입니다.');
@@ -34,46 +45,58 @@ export class BookService {
         return book;
     }
 
-    createBook(createBookDto: CreateBookDto) {
-        const { title, author, genre } = createBookDto;
+    async createBook(createBookDto: CreateBookDto) {
+        const book = await this.bookRepository.save({
+            title: createBookDto.title,
+            genre: createBookDto.genre,
+            author: createBookDto.author,
+            detail: {
+                detail: createBookDto.detail
+            },
+        });
+        return book;
+    }
 
-        if (!title) {
-            throw new NotFoundException('책 제목을 입력해주세요.');
+    async updateBook(id: number, updateBookDto: UpdateBookDto) {
+        const book = await this.bookRepository.findOne({
+            where: { id },
+            relations: ['detail'],
+        });
+
+        if (!book) {
+            throw new NotFoundException('존재하지 않는 ID의 책입니다.');
         }
 
-        const newBook: Book = {
-            id: this.books.length + 1,
-            title,
-            author,
-            genre,
-        };
-        this.books.push(newBook);
+        const { detail, ...bookRest } = updateBookDto;
+
+        await this.bookRepository.update({ id }, bookRest);
+        if (detail) {
+            await this.bookDetailRepository.update(
+                { id: book.detail.id },
+                { detail }
+            )
+        }
+
+        const newBook = await this.bookRepository.findOne({
+            where: { id },
+            relations: ['detail'],
+        });
         return newBook;
     }
 
-    updateBook(id: number, updateBookDto: UpdateBookDto) {
-        const { title } = updateBookDto;
-        const book = this.books.find((b) => b.id === +id);
-        if (!book) {
-            // 404 에러
-            throw new NotFoundException('존재하지 않는 ID의 책입니다.');
-        }
-        if (!title) {
-            throw new NotFoundException('책 제목을 입력해주세요.');
-        }
-        book.title = title;
-        // this.books = this.books.map((b) => (b.id === +id ? book : b));
-        Object.assign(book, { title });
-        return book;
-    }
+    async deleteBook(id: number) {
+        const book = await this.bookRepository.findOne({
+            where: { id },
+            relations: ['detail'],
+        });
 
-    deleteBook(id: number) {
-        const bookIndex = this.books.findIndex((b) => b.id === +id);
-        if (bookIndex === -1) {
-            // 404 에러
+        if (!book) {
             throw new NotFoundException('존재하지 않는 ID의 책입니다.');
         }
-        this.books.splice(bookIndex, 1);
+
+        await this.bookRepository.delete({ id });
+        await this.bookDetailRepository.delete({ id: book.detail.id });
+
         return id;
     }
 }
