@@ -1,15 +1,25 @@
-import { IsNotEmpty } from "class-validator";
+import { ArrayNotEmpty, IsArray, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { Genre } from "src/genre/entity/genre.entity";
 
 export class CreateBookDto {
     @IsNotEmpty()
+    @IsString()
     title: string;
 
     @IsNotEmpty()
+    @IsString()
     author: string;
 
     @IsNotEmpty()
-    genre: string;
+    @IsString()
+    detail: string;
 
     @IsNotEmpty()
-    detail: string;
+    @IsNumber()
+    authorId: number;
+
+    @IsArray()
+    @ArrayNotEmpty()
+    @IsNumber({}, { each: true })
+    genreIds: number[];
 }

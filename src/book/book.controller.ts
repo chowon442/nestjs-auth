@@ -9,10 +9,12 @@ import {
     Query,
     UseInterceptors,
     ClassSerializerInterceptor,
+    ParseIntPipe,
 } from '@nestjs/common';
 import { BookService } from './book.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
+import { BookTitleValidationPipe } from './pipe/book-title-validation.pipe';
 
 @Controller('book')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -20,27 +22,27 @@ export class BookController {
     constructor(private readonly bookService: BookService) {}
 
     @Get()
-    getBooks(@Query('title') title?: string) {
-        return this.bookService.getManyBooks(title);
+    getBooks(@Query('title', BookTitleValidationPipe) title?: string) {
+        return this.bookService.findAll(title);
     }
 
     @Get(':id')
-    getBook(@Param('id') id: string) {
-        return this.bookService.getBookById(+id);
+    getBook(@Param('id', ParseIntPipe) id: number) {
+        return this.bookService.findOne(id);
     }
 
     @Post()
     postBook(@Body() body: CreateBookDto) {
-        return this.bookService.createBook(body);
+        return this.bookService.create(body);
     }
 
     @Patch(':id')
-    patchBook(@Param('id') id: string, @Body() body: UpdateBookDto) {
-        return this.bookService.updateBook(+id, body);
+    patchBook(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateBookDto) {
+        return this.bookService.update(id, body);
     }
 
     @Delete(':id')
-    deleteBook(@Param('id') id: string) {
-        return this.bookService.deleteBook(+id);
+    deleteBook(@Param('id', ParseIntPipe) id: number) {
+        return this.bookService.delete(id);
     }
 }

@@ -1,19 +1,4 @@
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateBookDto } from './create-book.dto';
 
-export class UpdateBookDto {
-    @IsNotEmpty()
-    @IsOptional()
-    title?: string;
-
-    @IsNotEmpty()
-    @IsOptional()
-    author?: string;
-
-    @IsNotEmpty()
-    @IsOptional()
-    genre?: string;
-
-    @IsNotEmpty()
-    @IsOptional()
-    detail?: string;
-}
+export class UpdateBookDto extends PartialType(CreateBookDto) {}

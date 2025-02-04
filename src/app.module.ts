@@ -5,6 +5,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { Book } from './book/entity/book.entity';
 import { BookDetail } from './book/entity/book-detail.entity';
+import { AuthorModule } from './author/author.module';
+import { Author } from './author/entity/author.entity';
+import { GenreModule } from './genre/genre.module';
+import { Genre } from './genre/entity/genre.entity';
 
 @Module({
     imports: [
@@ -28,12 +32,14 @@ import { BookDetail } from './book/entity/book-detail.entity';
                 username: configService.get<string>('DB_USERNAME'),
                 password: configService.get<string>('DB_PASSWORD'),
                 database: configService.get<string>('DB_DATABASE'),
-                entities: [Book, BookDetail],
+                entities: [Book, BookDetail, Author, Genre],
                 synchronize: true,
             }),
             inject: [ConfigService]
         }),
         BookModule,
+        AuthorModule,
+        GenreModule,
     ],
 })
 export class AppModule {}
